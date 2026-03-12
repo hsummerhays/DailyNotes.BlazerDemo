@@ -1,0 +1,47 @@
+@page "/notes"
+@using DailyNotes.Shared
+@inject HttpClient Http
+
+<h3>Daily Notes</h3>
+
+<input @bind="newNote" placeholder="Enter note" />
+<button @onclick="AddNote">Add</button>
+
+<ul>
+    @foreach (var note in notes)
+    {
+        <li>
+            @note.Text
+            <button @onclick="() => Delete(note.Id)">x</button>
+        </li>
+    }
+</ul>
+
+@code {
+
+    List<Note> notes = new();
+    string newNote = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        notes = await Http.GetFromJsonAsync<List<Note>>("api/notes") ?? new();
+    }
+
+    async Task AddNote()
+    {
+        var note = new Note { Text = newNote };
+
+        var response = await Http.PostAsJsonAsync("api/notes", note);
+
+        notes.Add(await response.Content.ReadFromJsonAsync<Note>());
+
+        newNote = "";
+    }
+
+    async Task Delete(int id)
+    {
+        await Http.DeleteAsync($"api/notes/{id}");
+
+        notes.RemoveAll(n => n.Id == id);
+    }
+}
