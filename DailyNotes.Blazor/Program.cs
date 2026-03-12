@@ -17,7 +17,9 @@ if (builder.Environment.IsDevelopment() && (string.IsNullOrEmpty(azureAdConfig["
 else
 {
     builder.Services.AddAuthentication(OpenIdConnectDefaults.AuthenticationScheme)
-        .AddMicrosoftIdentityWebApp(azureAdConfig);
+        .AddMicrosoftIdentityWebApp(azureAdConfig)
+        .EnableTokenAcquisitionToCallDownstreamApi()
+        .AddInMemoryTokenCaches();
 }
 
 builder.Services.AddControllersWithViews()
@@ -34,10 +36,19 @@ builder.Services.AddRazorComponents()
 
 builder.Services.AddCascadingAuthenticationState();
 
-builder.Services.AddScoped(sp => new HttpClient
+builder.Services.AddHeaderPropagation(options => options.Headers.Add("Authorization"));
+
+builder.Services.AddHttpClient("DailyNotesApi", client =>
 {
-    BaseAddress = new Uri("http://localhost:5251/")
+    client.BaseAddress = new Uri("http://localhost:5251/");
+})
+.AddMicrosoftIdentityUserAuthenticationHandler("DailyNotesApi", options =>
+{
+    options.Scopes = "api://b30d6c43-5055-4bf6-a71e-df0dd40ec946/access_as_user"; // Attempting to use a standard scope or the client ID scope
 });
+
+// Fallback plain client if needed
+builder.Services.AddScoped(sp => sp.GetRequiredService<IHttpClientFactory>().CreateClient("DailyNotesApi"));
 
 builder.Services.AddScoped<ThemeService>();
 
@@ -53,6 +64,8 @@ if (!app.Environment.IsDevelopment())
 app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
 
 app.UseAntiforgery();
+
+app.UseHeaderPropagation();
 
 app.UseAuthentication();
 app.UseAuthorization();

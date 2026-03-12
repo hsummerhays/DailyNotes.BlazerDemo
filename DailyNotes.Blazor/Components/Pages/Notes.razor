@@ -7,7 +7,7 @@
 
 <div class="page-header" style="display: flex; justify-content: space-between; align-items: center;">
     <div>
-        <h1 style="font-size: 1.5rem; font-weight: 600;">Work Journal</h1>
+        <h1 style="font-size: 1.5rem; font-weight: 600;">Work Notes</h1>
         <p style="color: var(--color-text-secondary); font-size: 0.875rem;">Reflections and notes on your work days</p>
     </div>
     <button class="btn btn-primary" @onclick="() => _isNewNoteModalOpen = true">+ New Note</button>
@@ -40,7 +40,7 @@
     }
 </div>
 
-<Modal Title="New Journal Entry" @bind-IsOpen="_isNewNoteModalOpen">
+<Modal Title="New Note Entry" @bind-IsOpen="_isNewNoteModalOpen">
     <textarea placeholder="Write your thoughts..." style="width: 100%; height: 200px; background: var(--color-bg-elevated); color: inherit; border: 1px solid var(--color-border); padding: 1rem; border-radius: 8px; resize: none; font-family: inherit;"></textarea>
     <div style="display: flex; gap: 0.75rem; justify-content: flex-end; margin-top: 1.5rem;">
         <button class="btn btn-secondary" @onclick="() => _isNewNoteModalOpen = false">Cancel</button>
