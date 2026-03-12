@@ -29,19 +29,30 @@
 
     async Task AddNote()
     {
+        if (string.IsNullOrWhiteSpace(newNote)) return;
+
         var note = new Note { Text = newNote };
 
         var response = await Http.PostAsJsonAsync("api/notes", note);
-
-        notes.Add(await response.Content.ReadFromJsonAsync<Note>());
-
-        newNote = "";
+        
+        if (response.IsSuccessStatusCode)
+        {
+            var createdNote = await response.Content.ReadFromJsonAsync<Note>();
+            if (createdNote != null)
+            {
+                notes.Add(createdNote);
+                newNote = "";
+            }
+        }
     }
 
     async Task Delete(int id)
     {
-        await Http.DeleteAsync($"api/notes/{id}");
+        var response = await Http.DeleteAsync($"api/notes/{id}");
 
-        notes.RemoveAll(n => n.Id == id);
+        if (response.IsSuccessStatusCode)
+        {
+            notes.RemoveAll(n => n.Id == id);
+        }
     }
 }
