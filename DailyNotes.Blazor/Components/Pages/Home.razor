@@ -1,7 +1,93 @@
-﻿@page "/"
+@page "/"
+@using DailyNotes.Blazor.Components.UI
+@using DailyNotes.Shared.Models
+@using System.Globalization
+@inject HttpClient Http
 
-<PageTitle>Home</PageTitle>
+<PageTitle>Dashboard - DailyNotes</PageTitle>
 
-<h1>Hello, world!</h1>
+<div class="page-header">
+    <h1 style="font-size: 1.5rem; font-weight: 600;">@_greeting 👋</h1>
+    <p style="color: var(--color-text-secondary); font-size: 0.875rem; margin-top: 0.25rem;">
+        @DateTime.Now.ToString("dddd, MMMM d, yyyy")
+    </p>
+</div>
 
-Welcome to your new app.
+<div class="page-content">
+    @if (_isLoading)
+    {
+        <div style="display: flex; justify-content: center; padding: 3rem;">
+            <div class="spinner"></div>
+        </div>
+    }
+    else
+    {
+        <!-- Stats Grid -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+            <StatCard Label="Today's Status" Value="@(_isClockedIn ? "🟢 Clocked In" : "⚪ Not Started")" Accent="#10b981" />
+            <StatCard Label="Active Tasks" Value="@_activeTasksCount.ToString()" Accent="#6366f1" />
+            <StatCard Label="Overdue" Value="@_overdueTasksCount.ToString()" Accent="@(_overdueTasksCount > 0 ? "#ef4444" : "#64748b")" />
+            <StatCard Label="Hours Today" Value="@_hoursToday.ToString("F1")" Accent="#06b6d4" />
+        </div>
+    }
+
+    <!-- Quick Actions -->
+    <div style="display: flex; gap: 0.75rem; margin-bottom: 2rem; flex-wrap: wrap;">
+        <NavLink href="work-days" class="btn btn-primary">📅 View Today</NavLink>
+        <NavLink href="tasks" class="btn btn-secondary">✅ My Tasks</NavLink>
+        <NavLink href="notes" class="btn btn-secondary">📝 New Note</NavLink>
+        <NavLink href="search" class="btn btn-secondary">🔍 Search</NavLink>
+    </div>
+
+    <!-- Section: Active Tasks -->
+    <div style="margin-bottom: 2rem;">
+        <h2 style="font-size: 1.1rem; font-weight: 600; margin-bottom: 1rem;">Recent Activity</h2>
+        <div class="card" style="padding: 1.5rem; color: var(--color-text-muted); border-style: dashed;">
+            <p>Ready to start your day? Clock in or browse your tasks.</p>
+        </div>
+    </div>
+</div>
+
+@code {
+    private string _greeting = "Welcome";
+    private bool _isLoading = true;
+    private bool _isClockedIn = false;
+    private int _activeTasksCount = 0;
+    private int _overdueTasksCount = 0;
+    private double _hoursToday = 0.0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var hour = DateTime.Now.Hour;
+        if (hour < 12) _greeting = "Good Morning";
+        else if (hour < 17) _greeting = "Good Afternoon";
+        else _greeting = "Good Evening";
+
+        try
+        {
+            var tasks = await Http.GetFromJsonAsync<List<WorkTask>>("api/worktasks") ?? new();
+            _activeTasksCount = tasks.Count(t => t.Status != "completed");
+            _overdueTasksCount = tasks.Count(t => t.DueDate < DateTime.Today && t.Status != "completed");
+
+            var workDays = await Http.GetFromJsonAsync<List<WorkDay>>("api/workdays") ?? new();
+            var today = workDays.FirstOrDefault(w => w.WorkDate.Date == DateTime.Today);
+            _isClockedIn = today?.TimeIn1 != null && today.TimeOut1 == null;
+            
+            // Simplified hour calculation
+            if (today?.TimeIn1 != null)
+            {
+                var end = today.TimeOut1 ?? DateTime.Now;
+                _hoursToday = (end - today.TimeIn1.Value).TotalHours;
+            }
+        }
+        catch (Exception ex)
+        {
+            // Handle error (e.g., redirect to login or show message)
+            Console.WriteLine(ex.Message);
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+}

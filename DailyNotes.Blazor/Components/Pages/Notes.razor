@@ -1,0 +1,93 @@
+@page "/notes"
+@using DailyNotes.Blazor.Components.UI
+@using DailyNotes.Shared.Models
+@inject HttpClient Http
+
+<PageTitle>Notes - DailyNotes</PageTitle>
+
+<div class="page-header" style="display: flex; justify-content: space-between; align-items: center;">
+    <div>
+        <h1 style="font-size: 1.5rem; font-weight: 600;">Work Journal</h1>
+        <p style="color: var(--color-text-secondary); font-size: 0.875rem;">Reflections and notes on your work days</p>
+    </div>
+    <button class="btn btn-primary" @onclick="() => _isNewNoteModalOpen = true">+ New Note</button>
+</div>
+
+<div class="page-content">
+    @if (_isLoading)
+    {
+        <div style="display: flex; justify-content: center; padding: 3rem;">
+            <div class="spinner"></div>
+        </div>
+    }
+    else
+    {
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem;">
+            @foreach (var note in _notes)
+            {
+                <div class="card glass" style="padding: 1.5rem; position: relative;">
+                    <div style="font-size: 0.75rem; color: var(--color-text-muted); margin-bottom: 0.5rem; display: flex; justify-content: space-between;">
+                        <span>@note.NoteDate.ToString("MMMM d, yyyy")</span>
+                        @if (note.IsPinned) { <span>📌</span> }
+                        <button class="btn-icon" @onclick="() => DeleteNote(note.Id)">✕</button>
+                    </div>
+                    <div style="font-size: 0.95rem; margin-bottom: 1rem; white-space: pre-wrap;">
+                        @note.Content
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+<Modal Title="New Journal Entry" @bind-IsOpen="_isNewNoteModalOpen">
+    <textarea placeholder="Write your thoughts..." style="width: 100%; height: 200px; background: var(--color-bg-elevated); color: inherit; border: 1px solid var(--color-border); padding: 1rem; border-radius: 8px; resize: none; font-family: inherit;"></textarea>
+    <div style="display: flex; gap: 0.75rem; justify-content: flex-end; margin-top: 1.5rem;">
+        <button class="btn btn-secondary" @onclick="() => _isNewNoteModalOpen = false">Cancel</button>
+        <button class="btn btn-primary" @onclick="() => _isNewNoteModalOpen = false">Save Note</button>
+    </div>
+</Modal>
+
+@code {
+    private bool _isLoading = true;
+    private bool _isNewNoteModalOpen = false;
+    private List<Note> _notes = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        _isLoading = true;
+        try
+        {
+            _notes = await Http.GetFromJsonAsync<List<Note>>("api/notes") ?? new();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task DeleteNote(int id)
+    {
+        try
+        {
+            var response = await Http.DeleteAsync($"api/notes/{id}");
+            if (response.IsSuccessStatusCode)
+            {
+                _notes.RemoveAll(n => n.Id == id);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
+    }
+}

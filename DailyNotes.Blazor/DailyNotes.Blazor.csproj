@@ -4,6 +4,10 @@
     <ProjectReference Include="..\DailyNotes.Shared\DailyNotes.Shared.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Identity.Web.UI" Version="4.5.0" />
+  </ItemGroup>
+
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>

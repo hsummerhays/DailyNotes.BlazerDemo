@@ -1,0 +1,89 @@
+@page "/projects"
+@using DailyNotes.Blazor.Components.UI
+@using DailyNotes.Shared.Models
+@inject HttpClient Http
+
+<PageTitle>Projects - DailyNotes</PageTitle>
+
+<div class="page-header" style="display: flex; justify-content: space-between; align-items: center;">
+    <div>
+        <h1 style="font-size: 1.5rem; font-weight: 600;">Projects</h1>
+        <p style="color: var(--color-text-secondary); font-size: 0.875rem;">Organize your work into categories and projects</p>
+    </div>
+    <button class="btn btn-primary" @onclick="() => _isNewProjectModalOpen = true">+ New Project</button>
+</div>
+
+<div class="page-content">
+    @if (_isLoading)
+    {
+        <div style="display: flex; justify-content: center; padding: 3rem;">
+            <div class="spinner"></div>
+        </div>
+    }
+    else
+    {
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.5rem;">
+            @foreach (var project in _projects)
+            {
+                <div class="card" style="padding: 1.5rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem;">
+                        <h3 style="font-weight: 600; font-size: 1.1rem;">@project.Name</h3>
+                        <Badge Type="Badge.BadgeType.Primary">@project.Visibility</Badge>
+                    </div>
+                    @if (!string.IsNullOrEmpty(project.Category))
+                    {
+                        <div style="font-size: 0.8rem; color: var(--color-text-muted); margin-bottom: 1rem;">
+                            📁 @project.Category
+                        </div>
+                    }
+                    <div style="font-size: 0.85rem; color: var(--color-text-secondary);">
+                        Created: @project.CreatedAt.ToString("MMM yyyy")
+                    </div>
+                    <div style="margin-top: 1.5rem; display: flex; gap: 0.5rem;">
+                        <button class="btn btn-secondary" style="flex: 1; font-size: 0.8rem;">View Tasks</button>
+                        <button class="btn btn-secondary" style="padding: 0.4rem 0.6rem;">⚙</button>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+<Modal Title="New Project" @bind-IsOpen="_isNewProjectModalOpen">
+    <div style="display: flex; flex-direction: column; gap: 1rem;">
+        <input type="text" placeholder="Project Name" style="width: 100%; background: var(--color-bg-elevated); color: inherit; border: 1px solid var(--color-border); padding: 0.75rem; border-radius: 8px;" />
+        <input type="text" placeholder="Category (e.g., Development, Design)" style="width: 100%; background: var(--color-bg-elevated); color: inherit; border: 1px solid var(--color-border); padding: 0.75rem; border-radius: 8px;" />
+    </div>
+    <div style="display: flex; gap: 0.75rem; justify-content: flex-end; margin-top: 2rem;">
+        <button class="btn btn-secondary" @onclick="() => _isNewProjectModalOpen = false">Cancel</button>
+        <button class="btn btn-primary" @onclick="() => _isNewProjectModalOpen = false">Create Project</button>
+    </div>
+</Modal>
+
+@code {
+    private bool _isLoading = true;
+    private bool _isNewProjectModalOpen = false;
+    private List<Project> _projects = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        _isLoading = true;
+        try
+        {
+            _projects = await Http.GetFromJsonAsync<List<Project>>("api/worktasks/projects") ?? new();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+}

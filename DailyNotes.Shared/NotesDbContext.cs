@@ -1,5 +1,5 @@
 using Microsoft.EntityFrameworkCore;
-using DailyNotes.Shared;
+using DailyNotes.Shared.Models;
 
 namespace DailyNotes.Api.Data;
 
@@ -10,5 +10,9 @@ public class NotesDbContext : DbContext
     {
     }
 
-    public DbSet<Note> Notes => Set<Note>();
+    public DbSet<Note> Notes { get; set; }
+    public DbSet<WorkDay> WorkDays { get; set; }
+    public DbSet<Project> Projects { get; set; }
+    public DbSet<WorkTask> WorkTasks { get; set; }
+    public DbSet<TenantUser> TenantUsers { get; set; }
 }
