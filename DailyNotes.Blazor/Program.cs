@@ -16,14 +16,23 @@ if (builder.Environment.IsDevelopment() && (string.IsNullOrEmpty(azureAdConfig["
 }
 else
 {
+    var azureAdSection = builder.Configuration.GetSection("AzureAd");
+    Console.WriteLine($"DEBUG: AzureAd:ClientSecret length: {builder.Configuration["AzureAd:ClientSecret"]?.Length ?? 0}");
+    
     builder.Services.AddAuthentication(OpenIdConnectDefaults.AuthenticationScheme)
-        .AddMicrosoftIdentityWebApp(azureAdConfig)
+        .AddMicrosoftIdentityWebApp(options => 
+        {
+            azureAdSection.Bind(options);
+            options.ClientSecret = builder.Configuration["AzureAd:ClientSecret"];
+        })
         .EnableTokenAcquisitionToCallDownstreamApi()
         .AddInMemoryTokenCaches();
+    builder.Services.AddMicrosoftIdentityConsentHandler();
 }
 
-builder.Services.AddControllersWithViews()
+builder.Services.AddRazorPages()
     .AddMicrosoftIdentityUI();
+builder.Services.AddControllersWithViews();
 
 builder.Services.AddAuthorization(options =>
 {
@@ -40,14 +49,15 @@ builder.Services.AddHeaderPropagation(options => options.Headers.Add("Authorizat
 
 builder.Services.AddHttpClient("DailyNotesApi", client =>
 {
-    client.BaseAddress = new Uri("http://localhost:5251/");
+    var apiBaseAddress = builder.Configuration["DailyNotesApi:BaseAddress"] ?? "http://localhost:5251/";
+    client.BaseAddress = new Uri(apiBaseAddress);
 })
 .AddMicrosoftIdentityUserAuthenticationHandler("DailyNotesApi", options =>
 {
-    options.Scopes = "api://b30d6c43-5055-4bf6-a71e-df0dd40ec946/access_as_user"; // Attempting to use a standard scope or the client ID scope
+    options.Scopes = "api://b30d6c43-5055-4bf6-a71e-df0dd40ec946/access_as_user"; 
 });
 
-// Fallback plain client if needed
+// Provide simpler injection for components
 builder.Services.AddScoped(sp => sp.GetRequiredService<IHttpClientFactory>().CreateClient("DailyNotesApi"));
 
 builder.Services.AddScoped<ThemeService>();
@@ -75,5 +85,6 @@ app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
 app.MapControllers();
+app.MapRazorPages();
 
 app.Run();
