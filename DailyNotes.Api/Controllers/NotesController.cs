@@ -22,6 +22,7 @@ public class NotesController : ControllerBase
     private async Task<(int TenantId, string UserId)> GetUserContext()
     {
         var userId = User.GetObjectId();
+        Console.WriteLine($"API Request from User OID: {userId}");
         if (string.IsNullOrEmpty(userId)) throw new UnauthorizedAccessException();
 
         var tenantUser = await _context.TenantUsers
