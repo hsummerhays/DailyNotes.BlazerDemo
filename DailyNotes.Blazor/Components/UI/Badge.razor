@@ -3,7 +3,7 @@
 </span>
 
 @code {
-    public enum BadgeType { Primary, Success, Warning, Danger }
+    public enum BadgeType { Primary, Secondary, Success, Warning, Danger }
     [Parameter] public BadgeType Type { get; set; } = BadgeType.Primary;
     [Parameter] public RenderFragment? ChildContent { get; set; }
 }

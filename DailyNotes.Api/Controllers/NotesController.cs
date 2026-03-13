@@ -39,12 +39,41 @@ public class NotesController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IEnumerable<Note>> Get()
+    public async Task<IEnumerable<Note>> Get([FromQuery] int? taskId = null)
     {
         var (tenantId, userId) = await GetUserContext();
-        return await _context.Notes
-            .Where(n => n.TenantId == tenantId && n.UserId == userId)
-            .ToListAsync();
+        var query = _context.Notes
+            .Where(n => n.TenantId == tenantId && n.UserId == userId);
+        
+        if (taskId.HasValue)
+        {
+            query = query.Where(n => n.WorkTaskId == taskId.Value);
+        }
+
+        return await query.OrderByDescending(n => n.NoteDate).ToListAsync();
+    }
+
+    [HttpPut("{id}")]
+    public async Task<IActionResult> Put(int id, Note note)
+    {
+        var (tenantId, userId) = await GetUserContext();
+        if (id != note.Id) return BadRequest();
+
+        var existing = await _context.Notes
+            .FirstOrDefaultAsync(n => n.Id == id && n.TenantId == tenantId && n.UserId == userId);
+
+        if (existing == null) return NotFound();
+
+        existing.Content = note.Content;
+        existing.NoteDate = note.NoteDate;
+        existing.WorkTaskId = note.WorkTaskId;
+        existing.TimeMinutes = note.TimeMinutes;
+        existing.IsPinned = note.IsPinned;
+        existing.Visibility = note.Visibility;
+        existing.UpdatedAt = DateTime.UtcNow;
+
+        await _context.SaveChangesAsync();
+        return Ok(existing);
     }
 
     [HttpPost]

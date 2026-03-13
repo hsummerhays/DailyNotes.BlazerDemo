@@ -9,7 +9,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 var azureAdConfig = builder.Configuration.GetSection("AzureAd");
-if (builder.Environment.IsDevelopment() && (string.IsNullOrEmpty(azureAdConfig["ClientId"]) || azureAdConfig["ClientId"].Contains("[")))
+if (builder.Environment.IsDevelopment() && (string.IsNullOrEmpty(azureAdConfig["ClientId"]) || azureAdConfig["ClientId"]?.Contains("[") == true))
 {
     builder.Services.AddAuthentication("Demo")
         .AddScheme<AuthenticationSchemeOptions, MockAuthHandler>("Demo", null);

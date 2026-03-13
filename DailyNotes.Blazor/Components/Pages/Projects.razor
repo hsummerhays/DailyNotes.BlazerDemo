@@ -3,6 +3,7 @@
 @using DailyNotes.Blazor.Components.UI
 @using DailyNotes.Shared.Models
 @inject HttpClient Http
+@inject NavigationManager Navigation
 
 <PageTitle>Projects - DailyNotes</PageTitle>
 
@@ -11,7 +12,7 @@
         <h1 style="font-size: 1.5rem; font-weight: 600;">Projects</h1>
         <p style="color: var(--color-text-secondary); font-size: 0.875rem;">Organize your work into categories and projects</p>
     </div>
-    <button class="btn btn-primary" @onclick="() => _isNewProjectModalOpen = true">+ New Project</button>
+    <button class="btn btn-primary" @onclick="OpenNewProjectModal">+ New Project</button>
 </div>
 
 <div class="page-content">
@@ -38,32 +39,64 @@
                         </div>
                     }
                     <div style="font-size: 0.85rem; color: var(--color-text-secondary);">
-                        Created: @project.CreatedAt.ToString("MMM yyyy")
+                        Created: @(project.CreatedDate?.ToString("MMM yyyy") ?? project.CreatedAt.ToString("MMM yyyy"))
                     </div>
                     <div style="margin-top: 1.5rem; display: flex; gap: 0.5rem;">
-                        <button class="btn btn-secondary" style="flex: 1; font-size: 0.8rem;">View Tasks</button>
-                        <button class="btn btn-secondary" style="padding: 0.4rem 0.6rem;">⚙</button>
+                        <button class="btn btn-secondary" style="flex: 1; font-size: 0.8rem;" @onclick="() => ViewProjectTasks(project.Id)">View Tasks</button>
+                        <button class="btn btn-secondary" style="padding: 0.4rem 0.6rem;" @onclick="() => OpenEditProjectModal(project)">⚙</button>
                     </div>
+                </div>
+            }
+            @if (!_projects.Any())
+            {
+                <div style="grid-column: 1 / -1; text-align: center; padding: 2rem; color: var(--color-text-muted);">
+                    No projects found.
                 </div>
             }
         </div>
     }
 </div>
 
-<Modal Title="New Project" @bind-IsOpen="_isNewProjectModalOpen">
+<Modal Title="@(_isEditing ? "Edit Project" : "New Project")" @bind-IsOpen="_isProjectModalOpen">
     <div style="display: flex; flex-direction: column; gap: 1rem;">
-        <input type="text" placeholder="Project Name" style="width: 100%; background: var(--color-bg-elevated); color: inherit; border: 1px solid var(--color-border); padding: 0.75rem; border-radius: 8px;" />
-        <input type="text" placeholder="Category (e.g., Development, Design)" style="width: 100%; background: var(--color-bg-elevated); color: inherit; border: 1px solid var(--color-border); padding: 0.75rem; border-radius: 8px;" />
+        <div>
+            <label style="display: block; margin-bottom: 0.5rem; font-size: 0.8rem; color: var(--color-text-secondary);">Project Name *</label>
+            <input type="text" @bind="_editingProject.Name" placeholder="Project Name" style="width: 100%; background: var(--color-bg-elevated); color: inherit; border: 1px solid var(--color-border); padding: 0.75rem; border-radius: 8px;" />
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <div>
+                <label style="display: block; margin-bottom: 0.5rem; font-size: 0.8rem; color: var(--color-text-secondary);">Category</label>
+                <input type="text" @bind="_editingProject.Category" placeholder="e.g., Development, Design" style="width: 100%; background: var(--color-bg-elevated); color: inherit; border: 1px solid var(--color-border); padding: 0.75rem; border-radius: 8px;" />
+            </div>
+            <div>
+                <label style="display: block; margin-bottom: 0.5rem; font-size: 0.8rem; color: var(--color-text-secondary);">Visibility</label>
+                <select @bind="_editingProject.Visibility" style="width: 100%; background: var(--color-bg-elevated); color: inherit; border: 1px solid var(--color-border); padding: 0.75rem; border-radius: 8px;">
+                    <option value="private">Private</option>
+                    <option value="team">Team</option>
+                    <option value="public">Public</option>
+                </select>
+            </div>
+            <div>
+                <label style="display: block; margin-bottom: 0.5rem; font-size: 0.8rem; color: var(--color-text-secondary);">Start Date</label>
+                <input type="date" @bind="_editingProject.CreatedDate" style="width: 100%; background: var(--color-bg-elevated); color: inherit; border: 1px solid var(--color-border); padding: 0.75rem; border-radius: 8px;" />
+            </div>
+            <div>
+                <label style="display: block; margin-bottom: 0.5rem; font-size: 0.8rem; color: var(--color-text-secondary);">Completed Date</label>
+                <input type="date" @bind="_editingProject.CompletedDate" style="width: 100%; background: var(--color-bg-elevated); color: inherit; border: 1px solid var(--color-border); padding: 0.75rem; border-radius: 8px;" />
+            </div>
+        </div>
     </div>
     <div style="display: flex; gap: 0.75rem; justify-content: flex-end; margin-top: 2rem;">
-        <button class="btn btn-secondary" @onclick="() => _isNewProjectModalOpen = false">Cancel</button>
-        <button class="btn btn-primary" @onclick="() => _isNewProjectModalOpen = false">Create Project</button>
+        <button class="btn btn-secondary" @onclick="() => _isProjectModalOpen = false">Cancel</button>
+        <button class="btn btn-primary" @onclick="SaveProject">@(_isEditing ? "Update Project" : "Create Project")</button>
     </div>
 </Modal>
 
 @code {
     private bool _isLoading = true;
-    private bool _isNewProjectModalOpen = false;
+    private bool _isProjectModalOpen = false;
+    private bool _isEditing = false;
+    private Project _editingProject = new();
     private List<Project> _projects = new();
 
     protected override async Task OnInitializedAsync()
@@ -76,7 +109,7 @@
         _isLoading = true;
         try
         {
-            _projects = await Http.GetFromJsonAsync<List<Project>>("api/worktasks/projects") ?? new();
+            _projects = await Http.GetFromJsonAsync<List<Project>>("api/projects") ?? new();
         }
         catch (Exception ex)
         {
@@ -86,5 +119,63 @@
         {
             _isLoading = false;
         }
+    }
+
+    private void OpenNewProjectModal()
+    {
+        _isEditing = false;
+        _editingProject = new Project { Visibility = "private", CreatedDate = DateTime.Today };
+        _isProjectModalOpen = true;
+    }
+
+    private void OpenEditProjectModal(Project project)
+    {
+        _isEditing = true;
+        _editingProject = new Project
+        {
+            Id = project.Id,
+            Name = project.Name,
+            Category = project.Category,
+            Visibility = project.Visibility,
+            CreatedDate = project.CreatedDate,
+            CompletedDate = project.CompletedDate,
+            TenantId = project.TenantId,
+            UserId = project.UserId
+        };
+        _isProjectModalOpen = true;
+    }
+
+    private async Task SaveProject()
+    {
+        if (string.IsNullOrWhiteSpace(_editingProject.Name)) return;
+
+        try
+        {
+            HttpResponseMessage response;
+            if (_isEditing)
+            {
+                response = await Http.PutAsJsonAsync($"api/projects/{_editingProject.Id}", _editingProject);
+            }
+            else
+            {
+                response = await Http.PostAsJsonAsync("api/projects", _editingProject);
+            }
+
+            if (response.IsSuccessStatusCode)
+            {
+                _isProjectModalOpen = false;
+                await LoadData();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
+    }
+
+    private void ViewProjectTasks(int projectId)
+    {
+        // Future enhancement: navigation with filtering on tasks page
+        // For now, it stays consistent with existing button
     }
 }

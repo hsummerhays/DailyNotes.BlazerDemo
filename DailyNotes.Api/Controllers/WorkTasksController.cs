@@ -48,15 +48,6 @@ public class WorkTasksController : ControllerBase
         }
     }
 
-    [HttpGet("projects")]
-    public async Task<IEnumerable<Project>> GetProjects()
-    {
-        var (tenantId, userId) = await GetUserContext();
-        return await _context.Projects
-            .Where(p => p.TenantId == tenantId && p.UserId == userId)
-            .OrderBy(p => p.Name)
-            .ToListAsync();
-    }
 
     [HttpPost]
     public async Task<WorkTask> Post(WorkTask task)
@@ -86,5 +77,29 @@ public class WorkTasksController : ControllerBase
         await _context.SaveChangesAsync();
 
         return Ok(task);
+    }
+    [HttpPut("{id}")]
+    public async Task<IActionResult> Put(int id, WorkTask task)
+    {
+        var (tenantId, userId) = await GetUserContext();
+        if (id != task.Id) return BadRequest();
+
+        var existing = await _context.WorkTasks
+            .FirstOrDefaultAsync(t => t.Id == id && t.TenantId == tenantId && t.UserId == userId);
+
+        if (existing == null) return NotFound();
+
+        existing.Name = task.Name;
+        existing.Status = task.Status;
+        existing.Comments = task.Comments;
+        existing.StartDate = task.StartDate;
+        existing.DueDate = task.DueDate;
+        existing.ProjectId = task.ProjectId;
+        existing.IsPinned = task.IsPinned;
+        existing.Visibility = task.Visibility;
+        existing.UpdatedAt = DateTime.UtcNow;
+
+        await _context.SaveChangesAsync();
+        return Ok(existing);
     }
 }
