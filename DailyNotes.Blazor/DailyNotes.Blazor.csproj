@@ -6,6 +6,7 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.HeaderPropagation" Version="10.0.4" />
+    <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="10.0.5" />
     <PackageReference Include="Microsoft.Identity.Web" Version="4.5.0" />
     <PackageReference Include="Microsoft.Identity.Web.UI" Version="4.5.0" />
   </ItemGroup>

@@ -27,9 +27,17 @@ public abstract class AuthenticatedBaseComponent : ComponentBase
             var challengeEx = FindChallengeException(ex);
             if (challengeEx != null)
             {
-                ConsentHandler.HandleException(challengeEx);
-                // If it didn't throw a NavigationException (e.g. if the setting is disabled)
-                // we should still stop here and not show the error message.
+                try
+                {
+                    ConsentHandler.HandleException(challengeEx);
+                }
+                catch (Exception)
+                {
+                    // ConsentHandler.HandleException may throw when HttpContext is not
+                    // available for response writing (e.g. during Blazor interactive mode).
+                    // Fall through to show the error message instead of crashing the circuit.
+                    ErrorMessage = "Your session needs to be refreshed. Please sign out and sign in again.";
+                }
                 return;
             }
 

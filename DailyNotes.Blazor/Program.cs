@@ -38,6 +38,19 @@ else
         };
     });
 
+    var redisConnection = builder.Configuration.GetConnectionString("RedisCache");
+    if (!string.IsNullOrEmpty(redisConnection))
+    {
+        builder.Services.AddStackExchangeRedisCache(options =>
+        {
+            options.Configuration = redisConnection;
+            options.InstanceName = "DailyNotes_";
+        });
+    }
+    else
+    {
+        builder.Services.AddDistributedMemoryCache();
+    }
     builder.Services.AddAuthentication(OpenIdConnectDefaults.AuthenticationScheme)
         .AddMicrosoftIdentityWebApp(options =>
         {
@@ -51,7 +64,7 @@ else
             };
         })
         .EnableTokenAcquisitionToCallDownstreamApi(new string[] { $"api://{azureAdConfig["ClientId"]}/access_as_user" })
-        .AddInMemoryTokenCaches();
+        .AddDistributedTokenCaches();
     builder.Services.AddMicrosoftIdentityConsentHandler();
 }
 

@@ -186,6 +186,8 @@ DocProject/Help/html
 
 # Click-Once directory
 publish/
+publish-api/
+publish-blazor/
 
 # Publish Web Output
 *.[Pp]ublish.xml

@@ -1,24 +1,35 @@
-function setTheme(theme) {
+function applyTheme(theme) {
     const html = document.documentElement;
-    localStorage.setItem('theme-preference', theme);
-    
+    let effectiveTheme = theme;
+
     if (theme === 'device') {
-        html.removeAttribute('data-theme');
-    } else {
-        html.setAttribute('data-theme', theme);
+        const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        effectiveTheme = isDark ? 'dark' : 'light';
     }
+
+    html.setAttribute('data-theme', effectiveTheme);
+    localStorage.setItem('theme-preference', theme);
 }
 
 function getPreferredTheme() {
     return localStorage.getItem('theme-preference') || 'device';
 }
 
-// Initialize
+// Initialize on load
 (function() {
-    setTheme(getPreferredTheme());
+    const preferred = getPreferredTheme();
+    applyTheme(preferred);
+    
+    // Listen for system theme changes
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+        if (getPreferredTheme() === 'device') {
+            applyTheme('device');
+        }
+    });
 })();
 
 window.themeManager = {
-    setTheme: setTheme,
+    setTheme: applyTheme,
     getTheme: getPreferredTheme
 };
+
